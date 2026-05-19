@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>三封袋-軟包袋計算器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Playfair+Display:ital,wght@1,900&display=swap" rel="stylesheet">
+  <style>
+    body{box-sizing:border-box;min-height:100vh;background:#fff;font-family:'Noto Sans TC',sans-serif;color:#1a1a1a;overflow-x:hidden}
+    .bg-art-text{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-15deg);font-family:'Playfair Display',serif;font-weight:900;font-style:italic;color:#f3f4f6;font-size:18vw;line-height:.8;white-space:nowrap;z-index:0;pointer-events:none;user-select:none}
+    .bg-art-text span{display:block;text-align:center}
+    .line-card{background:#fff;border:3px solid #1a1a1a;position:relative;z-index:10;box-shadow:12px 12px 0px #93c5fd}
+    .line-input{width:100%;background:#fff;border:2px solid #1a1a1a;padding:12px 16px;font-size:1.1rem;font-weight:700;color:#1a1a1a;border-radius:4px;transition:all .2s;appearance:none;-webkit-appearance:none}
+    .line-input:focus{outline:none;background:#eff6ff;box-shadow:4px 4px 0px #1a1a1a;transform:translate(-2px,-2px)}
+    .select-wrap{position:relative}
+    .select-wrap::after{content:'▼';position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:.7rem;pointer-events:none}
+    .select-wrap select.line-input{cursor:pointer;padding-right:36px}
+    .line-label{display:block;margin-bottom:8px;font-weight:900;font-size:.82rem;letter-spacing:.05em;text-transform:uppercase;color:#1a1a1a}
+    .art-title{font-family:'Playfair Display',serif;font-weight:900;font-style:italic;color:#1a1a1a;text-shadow:4px 4px 0px #93c5fd}
+    .result-item{border-bottom:2px dashed #d1d5db;padding:14px 0;display:flex;justify-content:space-between;align-items:center;gap:16px}
+    .result-item:last-child{border-bottom:none}
+    .formula-text{font-size:.7rem;color:#6b7280;font-style:italic;margin-top:3px;line-height:1.5;word-break:break-all}
+    .final-box{background:#1a1a1a;color:#fff;padding:28px 24px;border:3px solid #1a1a1a;position:relative;height:100%;display:flex;flex-direction:column;justify-content:center}
+    .deco-circle{position:fixed;border:2px solid #1a1a1a;border-radius:50%;z-index:5;background:#93c5fd}
+    .deco-tri{position:fixed;width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:28px solid #1a1a1a;z-index:5}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+    .floating{animation:float 6s ease-in-out infinite}
+    .error-text{color:#ef4444;font-size:.78rem;font-weight:700;margin-top:5px;display:none}
+    .error-text.show{display:block}
+    .section-tag{display:inline-block;background:#93c5fd;border:2px solid #1a1a1a;font-weight:900;font-size:.75rem;padding:3px 12px;margin-bottom:20px;letter-spacing:.12em;text-transform:uppercase}
+    .inter-item{background:#f0f7ff;border:2px solid #1a1a1a;padding:12px 14px;position:relative}
+    .inter-item::after{content:'';position:absolute;bottom:-5px;right:-5px;width:100%;height:100%;background:#bfdbfe;z-index:-1}
+    /* 上下料模式的格子用橙色系 */
+    .inter-item-ud{background:#fff7ed;border:2px solid #1a1a1a;padding:12px 14px;position:relative}
+    .inter-item-ud::after{content:'';position:absolute;bottom:-5px;right:-5px;width:100%;height:100%;background:#fed7aa;z-index:-1}
+    .cost-value{font-size:1.5rem;font-weight:900;text-align:right;white-space:nowrap;min-width:110px}
+    .const-area{background:#f8faff;border:2px dashed #93c5fd;padding:14px 18px;margin-top:20px}
+    .addon-area{background:#fafafa;border:2px solid #1a1a1a;padding:20px 18px 16px;margin-top:20px;position:relative}
+    .addon-area::before{content:'ADD-ON 加購項目';position:absolute;top:-11px;left:14px;background:#1a1a1a;color:#93c5fd;font-size:.68rem;font-weight:900;letter-spacing:.1em;padding:1px 8px}
+    .mega-num{font-size:3.5rem;font-weight:900;color:#93c5fd;text-shadow:2px 2px 0px #000;line-height:1}
+    @media(max-width:640px){.mega-num{font-size:2.5rem}}
+    /* 上下料提示橫幅 */
+    .ud-banner{background:#fff7ed;border:3px solid #f97316;padding:12px 18px;display:none;align-items:center;gap:10px;font-weight:900;font-size:.9rem;color:#9a3412;position:relative;z-index:10;margin-bottom:20px}
+    .ud-banner.show{display:flex}
+    .ud-banner .ud-icon{font-size:1.4rem;flex-shrink:0}
+    /* 尺寸超出警告橫幅 */
+    .range-warn{background:#fef9c3;border:3px solid #eab308;padding:11px 18px;display:none;align-items:center;gap:10px;font-weight:900;font-size:.88rem;color:#713f12;position:relative;z-index:10;margin-bottom:20px}
+    .range-warn.show{display:flex}
+    /* D badge */
+    .d-badge{display:none;margin-top:6px;background:#dbeafe;border:1.5px solid #3b82f6;padding:3px 10px;font-size:.75rem;font-weight:700;color:#1e40af}
+    .d-badge.show{display:inline-block}
+  </style>
+</head>
+<body>
+
+<div class="bg-art-text">
+  <span>BAG</span>
+  <span style="margin-left:1.5em;color:rgba(0,0,0,0.03);-webkit-text-stroke:2px #e5e7eb">COST</span>
+  <span>CALC</span>
+</div>
+<div class="deco-circle floating" style="width:44px;height:44px;top:12%;right:7%"></div>
+<div class="deco-tri floating" style="top:24%;left:7%;animation-delay:1s"></div>
+<div class="deco-circle floating" style="width:22px;height:22px;bottom:18%;left:5%;animation-delay:2s;background:#bfdbfe"></div>
+<div class="deco-circle floating" style="width:16px;height:16px;bottom:30%;right:5%;animation-delay:3s;background:#dbeafe"></div>
+
+<div class="relative z-10 w-full py-12 px-4 flex flex-col items-center">
+
+  <div class="max-w-5xl w-full text-center mb-12">
+    <h1 class="art-title text-5xl md:text-7xl mb-5 tracking-tight leading-tight">三封袋-軟包袋計算器</h1>
+    <p class="text-base md:text-lg font-bold bg-blue-200 inline-block px-4 py-1 transform -rotate-1 border-2 border-black">自動計算材料費・印刷費・上光費・製袋費・毛利</p>
+    <p class="mt-4 text-xs font-bold text-gray-400 tracking-widest uppercase">/// 輸入數值即時更新所有結果，請理性查驗，如有問題請回報 ///</p>
+  </div>
+
+  <div class="max-w-5xl w-full space-y-6">
+
+    <!-- 上下料提示橫幅 -->
+    <div id="ud-banner" class="ud-banner line-card" style="box-shadow:6px 6px 0px #f97316">
+      <span class="ud-icon">⚠</span>
+      <span>需使用上下料製作方式 — 以下計算已切換至上下料模式</span>
+    </div>
+
+    <!-- 尺寸超出警告 -->
+    <div id="range-warn" class="range-warn line-card" style="box-shadow:6px 6px 0px #eab308">
+      <span style="font-size:1.3rem;flex-shrink:0">⚠</span>
+      <span>請注意目前輸入成品尺寸超出範圍</span>
+    </div>
+
+    <!-- ① 輸入區 -->
+    <div class="line-card p-6 md:p-10">
+      <div class="section-tag">① Input 輸入參數</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <div>
+          <label class="line-label">A — 袋子成品高度 (cm)</label>
+          <input type="number" id="inp-A" value="12" min="0.1" step="0.1" class="line-input">
+          <div id="err-A-min" class="error-text">⚠ 少於最小尺寸（A 不可小於 12cm）</div>
+          <div id="d-badge" class="d-badge">D = <span id="d-val">—</span> m</div>
+        </div>
+
+        <div>
+          <label class="line-label">B — 袋子成品寬度 (cm)</label>
+          <input type="number" id="inp-B" value="10" min="0.1" step="0.1" class="line-input">
+          <div id="err-B-min" class="error-text">⚠ 少於最小尺寸（B 不可小於 8cm）</div>
+          <div id="err-B-max" class="error-text">⚠ 超過最大尺寸（B 不可超過 35cm）</div>
+        </div>
+
+        <div>
+          <label class="line-label">C — 袋子成品數量 (pcs)</label>
+          <input type="number" id="inp-C" value="8000" min="1" class="line-input">
+        </div>
+
+        <div>
+          <label class="line-label">I — 材料米平方單價 ($)</label>
+          <input type="number" id="inp-I" value="15" min="0" step="0.01" class="line-input">
+        </div>
+
+        <div>
+          <label class="line-label">N — 利潤乘數</label>
+          <input type="number" id="inp-N" value="1.3" min="1" step="0.01" class="line-input">
+        </div>
+
+      </div>
+
+      <!-- 加購項目 -->
+      <div class="addon-area">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div>
+            <label class="line-label">P — 夾鏈費（加購）</label>
+            <div class="select-wrap">
+              <select id="inp-P" class="line-input">
+                <option value="0">無</option>
+                <option value="1">有（+$0.5 / 米）</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="line-label">Q — 打孔費（加購）</label>
+            <div class="select-wrap">
+              <select id="inp-Q" class="line-input">
+                <option value="0">無</option>
+                <option value="1">有（+$0.5 / 米）</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="line-label">R — 修圓角（加購）</label>
+            <div class="select-wrap">
+              <select id="inp-R" class="line-input">
+                <option value="0">無</option>
+                <option value="1">有（+$0.1 / pcs）</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 固定常數 -->
+      <div class="const-area">
+        <p class="font-black text-xs uppercase tracking-widest text-blue-600 mb-3">固定常數 Fixed Constants</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-sm font-medium text-gray-700">
+          <span><b class="text-black">K</b> = 印刷單價 = $8 / 車</span>
+          <span><b class="text-black">L</b> = 印刷基本費 = $1,000</span>
+          <span><b class="text-black">M</b> = 材料耗損 = 60 m</span>
+          <span><b class="text-black">O</b> = 上光單價 = $2 / m</span>
+          <span><b class="text-black">F上限</b> = 0.35 m（最長跳距）</span>
+          <span><b class="text-black">J基本費</b> = $3,000（一般）/ $5,000（上下料）</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② 計算過程 -->
+    <div class="line-card p-6 md:p-8">
+      <div class="section-tag">② Process 計算過程</div>
+
+      <!-- 一般模式格子 -->
+      <div id="proc-normal" class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="inter-item">
+          <div class="text-xs font-black text-blue-700 uppercase tracking-wider mb-2">D — 材料寬幅 (m)</div>
+          <div id="out-D" class="text-2xl font-black">—</div>
+          <div id="fml-D" class="formula-text mt-1">—</div>
+        </div>
+        <div class="inter-item">
+          <div class="text-xs font-black text-blue-700 uppercase tracking-wider mb-2">G — 印刷模數</div>
+          <div id="out-G" class="text-2xl font-black">—</div>
+          <div id="fml-G" class="formula-text mt-1">—</div>
+        </div>
+        <div class="inter-item">
+          <div class="text-xs font-black text-blue-700 uppercase tracking-wider mb-2">F — 跳距 (m)</div>
+          <div id="out-F" class="text-2xl font-black">—</div>
+          <div id="fml-F" class="formula-text mt-1">—</div>
+        </div>
+        <div class="inter-item">
+          <div class="text-xs font-black text-blue-700 uppercase tracking-wider mb-2">H — 印刷車數</div>
+          <div id="out-H" class="text-2xl font-black">—</div>
+          <div id="fml-H" class="formula-text mt-1">—</div>
+        </div>
+        <div class="inter-item">
+          <div class="text-xs font-black text-blue-700 uppercase tracking-wider mb-2">E — 材料米數 (m)</div>
+          <div id="out-E" class="text-2xl font-black">—</div>
+          <div id="fml-E" class="formula-text mt-1">—</div>
+        </div>
+      </div>
+
+      <!-- 上下料模式格子 -->
+      <div id="proc-ud" class="hidden grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div class="inter-item-ud">
+          <div class="text-xs font-black text-orange-700 uppercase tracking-wider mb-2">D — 材料寬幅 (m)</div>
+          <div id="ud-out-D" class="text-2xl font-black">—</div>
+          <div id="ud-fml-D" class="formula-text mt-1">—</div>
+        </div>
+        <div class="inter-item-ud">
+          <div class="text-xs font-black text-orange-700 uppercase tracking-wider mb-2">G — 印刷模數</div>
+          <div id="ud-out-G" class="text-2xl font-black">—</div>
+          <div id="ud-fml-G" class="formula-text mt-1">—</div>
+        </div>
+        <div class="inter-item-ud">
+          <div class="text-xs font-black text-orange-700 uppercase tracking-wider mb-2">F — 跳距 (m)</div>
+          <div id="ud-out-F" class="text-2xl font-black">—</div>
+          <div id="ud-fml-F" class="formula-text mt-1">—</div>
+        </div>
+        <div class="inter-item-ud">
+          <div class="text-xs font-black text-orange-700 uppercase tracking-wider mb-2">H — 印刷車數</div>
+          <div id="ud-out-H" class="text-2xl font-black">—</div>
+          <div id="ud-fml-H" class="formula-text mt-1">—</div>
+        </div>
+        <div class="inter-item-ud">
+          <div class="text-xs font-black text-orange-700 uppercase tracking-wider mb-2">E/2 — 半料米數</div>
+          <div id="ud-out-Ehalf" class="text-2xl font-black">—</div>
+          <div id="ud-fml-Ehalf" class="formula-text mt-1">—</div>
+        </div>
+        <div class="inter-item-ud" style="border:2px solid #f97316">
+          <div class="text-xs font-black text-orange-700 uppercase tracking-wider mb-2">E — 總材料米數</div>
+          <div id="ud-out-E" class="text-2xl font-black">—</div>
+          <div id="ud-fml-E" class="formula-text mt-1">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ 費用明細 -->
+    <div class="line-card p-6 md:p-10">
+      <div class="section-tag">③ Cost 費用明細</div>
+      <div class="divide-y-2 divide-dashed divide-gray-200">
+
+        <div class="result-item">
+          <div class="flex-1 min-w-0">
+            <div class="font-black text-base">Z1 — 材料費</div>
+            <div id="fml-Z1" class="formula-text">—</div>
+          </div>
+          <div id="out-Z1" class="cost-value">$—</div>
+        </div>
+
+        <div class="result-item">
+          <div class="flex-1 min-w-0">
+            <div id="z2-label" class="font-black text-base">Z2 — 印刷費</div>
+            <div id="fml-Z2" class="formula-text">—</div>
+          </div>
+          <div id="out-Z2" class="cost-value">$—</div>
+        </div>
+
+        <div class="result-item">
+          <div class="flex-1 min-w-0">
+            <div class="font-black text-base">Z3 — 上光費</div>
+            <div id="fml-Z3" class="formula-text">—</div>
+          </div>
+          <div id="out-Z3" class="cost-value">$—</div>
+        </div>
+
+        <div class="result-item">
+          <div class="flex-1 min-w-0">
+            <div id="z4-label" class="font-black text-base">Z4 — 製袋費（含加購 P / Q）</div>
+            <div id="fml-Z4" class="formula-text">—</div>
+          </div>
+          <div id="out-Z4" class="cost-value">$—</div>
+        </div>
+
+        <div id="row-R" class="result-item hidden">
+          <div class="flex-1 min-w-0">
+            <div class="font-black text-base text-blue-600">R — 修圓角加購費</div>
+            <div id="fml-R" class="formula-text">—</div>
+          </div>
+          <div id="out-R" class="cost-value text-blue-600">$—</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ④ 最終結果 -->
+    <div class="line-card p-6 md:p-10">
+      <div class="section-tag">④ Result 計算結果</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+
+        <div>
+          <div class="bg-gray-50 border-2 border-gray-200 p-5">
+            <h3 class="font-black text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
+              <span class="w-3 h-3 bg-blue-400 border border-black inline-block"></span>成本 / 售價 明細
+            </h3>
+            <div class="result-item">
+              <div>
+                <div class="font-bold text-sm">Y2 — 成本總價</div>
+                <div id="fml-Y2" class="formula-text">Z1+Z2+Z3+Z4（＋R）</div>
+              </div>
+              <div id="out-Y2" class="font-black text-lg text-right">$—</div>
+            </div>
+            <div class="result-item">
+              <div>
+                <div class="font-bold text-sm">Y1 — 成本單價</div>
+                <div class="formula-text">成本總價 ÷ C</div>
+              </div>
+              <div id="out-Y1" class="font-black text-lg text-right">$—</div>
+            </div>
+            <div class="result-item">
+              <div>
+                <div class="font-bold text-sm">Y4 — 販售總價</div>
+                <div class="formula-text">成本總價 × N</div>
+              </div>
+              <div id="out-Y4" class="font-black text-lg text-right">$—</div>
+            </div>
+            <div class="result-item">
+              <div>
+                <div class="font-bold text-sm">Y3 — 販售單價</div>
+                <div class="formula-text">販售總價 ÷ C</div>
+              </div>
+              <div id="out-Y3" class="font-black text-lg text-right">$—</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="final-box">
+            <div class="absolute top-3 left-3 w-2 h-2 bg-white rounded-full"></div>
+            <div class="absolute top-3 right-3 w-2 h-2 bg-white rounded-full"></div>
+            <div class="absolute bottom-3 left-3 w-2 h-2 bg-white rounded-full"></div>
+            <div class="absolute bottom-3 right-3 w-2 h-2 bg-white rounded-full"></div>
+            <div class="text-center mb-6">
+              <span class="block text-blue-300 text-xs font-black tracking-widest uppercase mb-2">X1 — 毛利 Gross Profit</span>
+              <span id="out-X1" class="text-4xl font-black">$—</span>
+            </div>
+            <div class="border-t border-gray-600 pt-6 text-center">
+              <span class="block text-gray-400 text-xs font-black tracking-widest uppercase mb-2">X2 — 毛利率 Margin</span>
+              <span id="out-X2" class="mega-num">—%</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <div class="text-center mt-14 mb-6">
+    <p class="text-xs font-bold text-gray-300 tracking-widest uppercase">三封袋-軟包袋計算器 · BAG COST CALCULATOR · AUTO COMPUTE</p>
+  </div>
+</div>
+
+<script>
+  function fmt(n,dec=2){
+    if(isNaN(n))return '—';
+    return n.toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  }
+  function fmtHtml(n,dec=2){
+    if(isNaN(n))return 'XX';
+    const str=n.toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+    const dot=str.indexOf('.');
+    if(dot===-1||dec===0)return str;
+    return str.slice(0,dot)+'<span style="color:#94a3b8;font-weight:700;">'+str.slice(dot)+'</span>';
+  }
+
+  const ALL_OUTS=[
+    'out-D','fml-D','out-G','fml-G','out-F','fml-F','out-H','fml-H','out-E','fml-E',
+    'ud-out-D','ud-fml-D','ud-out-G','ud-fml-G','ud-out-F','ud-fml-F',
+    'ud-out-H','ud-fml-H','ud-out-Ehalf','ud-fml-Ehalf','ud-out-E','ud-fml-E',
+    'out-Z1','fml-Z1','out-Z2','fml-Z2','out-Z3','fml-Z3','out-Z4','fml-Z4',
+    'out-R','fml-R','fml-Y2','out-Y2','out-Y1','out-Y4','out-Y3','out-X1','out-X2'
+  ];
+  function clearResults(){
+    ALL_OUTS.forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent='XX'; });
+    document.getElementById('row-R').classList.add('hidden');
+  }
+
+  function calculate(){
+    const A  = parseFloat(document.getElementById('inp-A').value);
+    const B  = parseFloat(document.getElementById('inp-B').value);
+    const C  = parseFloat(document.getElementById('inp-C').value);
+    const I  = parseFloat(document.getElementById('inp-I').value);
+    const N  = parseFloat(document.getElementById('inp-N').value);
+    const hasP = document.getElementById('inp-P').value==='1';
+    const hasQ = document.getElementById('inp-Q').value==='1';
+    const hasR = document.getElementById('inp-R').value==='1';
+    const K=8, L=1000, M=60, O=2;
+
+    // ── 驗證 ──
+    const eAmin=document.getElementById('err-A-min');
+    const eBmin=document.getElementById('err-B-min');
+    const eBmax=document.getElementById('err-B-max');
+    let valid=true;
+
+    const outOfRange=((!isNaN(A)&&A<12)||(!isNaN(B)&&B<8)||(!isNaN(B)&&B>35));
+    if(!isNaN(A)&&A<12) eAmin.classList.add('show'); else eAmin.classList.remove('show');
+    if(!isNaN(B)&&B<8)  eBmin.classList.add('show'); else eBmin.classList.remove('show');
+    if(!isNaN(B)&&B>35) eBmax.classList.add('show'); else eBmax.classList.remove('show');
+    const rw=document.getElementById('range-warn'); if(outOfRange) rw.classList.add('show'); else rw.classList.remove('show');
+
+    if(isNaN(A)||isNaN(B)||isNaN(C)||isNaN(I)||isNaN(N)||A<=0||B<=0||C<=0||N<=0){
+      clearResults();
+      document.getElementById('ud-banner').classList.remove('show');
+      document.getElementById('proc-normal').classList.remove('hidden');
+      document.getElementById('proc-ud').classList.add('hidden');
+      document.getElementById('d-badge').classList.remove('show');
+      document.getElementById('range-warn').classList.remove('show');
+      return;
+    }
+
+    // ── 判斷模式 ──
+    const isUD = ((A*2)+1+3) > 34;  // 上下料模式
+
+    const udBanner=document.getElementById('ud-banner');
+    const procNorm=document.getElementById('proc-normal');
+    const procUD=document.getElementById('proc-ud');
+
+    if(isUD){ udBanner.classList.add('show'); procNorm.classList.add('hidden'); procUD.classList.remove('hidden'); }
+    else    { udBanner.classList.remove('show'); procNorm.classList.remove('hidden'); procUD.classList.add('hidden'); }
+
+    // ══════════════════════════════
+    if(!isUD){
+    // ── 一般計算模式 ──
+    // ══════════════════════════════
+      const D_raw=((A*2)+1+3)/100;
+      const D=Math.max(0.2,Math.min(0.34,D_raw));
+      const dBadge=document.getElementById('d-badge');
+      dBadge.classList.add('show');
+      document.getElementById('d-val').textContent=D.toFixed(2);
+
+      const G_raw=35/(B+0.4);
+      const G=Math.floor(G_raw);
+      if(G<1){ clearResults(); return; }
+      const F=(B+0.4)*G/100;
+      const H=Math.ceil(C/G);
+      const E_raw=F*H+M;
+      const E=Math.ceil(E_raw/100)*100;
+
+      // J 一般
+      const J_base=E<=500?3000:3000+(E-500)*5;
+      const J_p=hasP?E*0.5:0;
+      const J_q=hasQ?E*0.5:0;
+      const J=J_base+J_p+J_q;
+
+      const Z1=D*E*I;
+      const Z2_raw=H*K;
+      const Z2=Math.max(Z2_raw,L);
+      const Z3=E*O;
+      const Z4=J;
+      const R_cost=hasR?0.1*C:0;
+      const Y2=Z1+Z2+Z3+Z4+R_cost;
+      const Y1=Y2/C, Y4=Y2*N, Y3=Y4/C, X1=Y4-Y2;
+      const X2=Math.round((Y4-Y2)/Y4*10000)/100;
+
+      // 顯示過程
+      document.getElementById('z2-label').textContent='Z2 — 印刷費';
+      document.getElementById('z4-label').textContent='Z4 — 製袋費（含加購 P / Q）';
+
+      document.getElementById('out-D').textContent=D.toFixed(2)+' m';
+      let d_note=D_raw<0.2?'→ 低於0.2，取0.2m':D_raw>0.34?'→ 超過0.34，取0.34m':'';
+      document.getElementById('fml-D').textContent=`((${A}×2)+1+3)÷100=${D_raw.toFixed(3)}m ${d_note}`.trim();
+
+      document.getElementById('out-G').textContent=G+' 模';
+      document.getElementById('fml-G').textContent=`floor(35÷(${B}+0.4))=floor(${G_raw.toFixed(4)})=${G}`;
+
+      document.getElementById('out-F').textContent=F.toFixed(4)+' m';
+      document.getElementById('fml-F').textContent=`(${B}+0.4)×${G}÷100=${F.toFixed(4)}m ≤ 0.35 ✓`;
+
+      document.getElementById('out-H').textContent=fmt(H,0)+' 車';
+      document.getElementById('fml-H').textContent=`ceil(${fmt(C,0)}÷${G})=ceil(${(C/G).toFixed(4)})=${fmt(H,0)}`;
+
+      document.getElementById('out-E').textContent=fmt(E,0)+' m';
+      document.getElementById('fml-E').textContent=`${F.toFixed(4)}×${fmt(H,0)}+${M}=${E_raw.toFixed(2)} → 取百位整數 → ${fmt(E,0)}`;
+
+      document.getElementById('out-Z1').innerHTML='$'+fmtHtml(Z1);
+      document.getElementById('fml-Z1').textContent=`D×E×I=${D.toFixed(2)}×${fmt(E,0)}×${I}=$${fmt(Z1)}`;
+
+      document.getElementById('out-Z2').innerHTML='$'+fmtHtml(Z2);
+      document.getElementById('fml-Z2').textContent=Z2_raw<L
+        ?`H×K=${fmt(H,0)}×8=$${fmt(Z2_raw)} → 低於基本費$1,000，取$${fmt(L)}`
+        :`H×K=${fmt(H,0)}×8=$${fmt(Z2)}`;
+
+      document.getElementById('out-Z3').innerHTML='$'+fmtHtml(Z3);
+      document.getElementById('fml-Z3').textContent=`E×O=${fmt(E,0)}×2=$${fmt(Z3)}`;
+
+      document.getElementById('out-Z4').innerHTML='$'+fmtHtml(Z4);
+      let z4f=E<=500?`E≤500，基本費$3,000`:`3,000+(${fmt(E,0)}-500)×5=$${fmt(J_base)}`;
+      if(hasP) z4f+=`  ＋P:${fmt(E,0)}×0.5=+$${fmt(J_p)}`;
+      if(hasQ) z4f+=`  ＋Q:${fmt(E,0)}×0.5=+$${fmt(J_q)}`;
+      z4f+=`  → 合計$${fmt(Z4)}`;
+      document.getElementById('fml-Z4').textContent=z4f;
+
+      showFinalRows(hasR,R_cost,C,Z1,Z2,Z3,Z4,Y2,Y1,Y4,Y3,X1,X2);
+
+    } else {
+    // ══════════════════════════════
+    // ── 上下料計算模式 ──
+    // ══════════════════════════════
+      document.getElementById('d-badge').classList.remove('show');
+
+      const D=Math.min((A+3)/100, 0.34);
+
+      const G_raw=35/(B+0.4);
+      const G=Math.floor(G_raw);
+      if(G<1){ clearResults(); return; }
+      const F=(B+0.4)*G/100;
+      const H=Math.ceil(C/G);
+      const E_half_raw=F*H+M;
+      const E_half=Math.ceil(E_half_raw/100)*100;
+      const E=E_half*2;
+
+      // J 上下料（以 E_half 計算）
+      let J_base;
+      if(E_half<=834){
+        J_base=5000;
+      } else {
+        const rate=B>20?5.5:5.7;
+        J_base=5000+(E_half-834)*rate;
+      }
+      const J_p=hasP?E_half*0.5:0;
+      const J_q=hasQ?E_half*0.5:0;
+      const J=J_base+J_p+J_q;
+
+      // Z2 上下料：兩份印刷
+      const Z2_each=Math.max(H*K,L);
+      const Z1=D*E*I;
+      const Z2=Z2_each*2;
+      const Z3=E*O;
+      const Z4=J;
+      const R_cost=hasR?0.1*C:0;
+      const Y2=Z1+Z2+Z3+Z4+R_cost;
+      const Y1=Y2/C, Y4=Y2*N, Y3=Y4/C, X1=Y4-Y2;
+      const X2=Math.round((Y4-Y2)/Y4*10000)/100;
+
+      // 顯示過程（上下料欄位）
+      document.getElementById('z2-label').textContent='Z2 — 印刷費（上料＋下料，各印一次）';
+      document.getElementById('z4-label').textContent='Z4 — 製袋費 J（上下料，以 E/2 計算，含加購 P / Q）';
+
+      document.getElementById('ud-out-D').textContent=D.toFixed(2)+' m';
+      document.getElementById('ud-fml-D').textContent=`(${A}+3)÷100=${D.toFixed(3)}m${D==0.34?' → 取最大值 0.34m':''}`;
+
+      document.getElementById('ud-out-G').textContent=G+' 模';
+      document.getElementById('ud-fml-G').textContent=`floor(35÷(${B}+0.4))=floor(${G_raw.toFixed(4)})=${G}`;
+
+      document.getElementById('ud-out-F').textContent=F.toFixed(4)+' m';
+      document.getElementById('ud-fml-F').textContent=`(${B}+0.4)×${G}÷100=${F.toFixed(4)}m ≤ 0.35 ✓`;
+
+      document.getElementById('ud-out-H').textContent=fmt(H,0)+' 車';
+      document.getElementById('ud-fml-H').textContent=`ceil(${fmt(C,0)}÷${G})=ceil(${(C/G).toFixed(4)})=${fmt(H,0)}`;
+
+      document.getElementById('ud-out-Ehalf').textContent=fmt(E_half,0)+' m';
+      document.getElementById('ud-fml-Ehalf').textContent=`${F.toFixed(4)}×${fmt(H,0)}+${M}=${E_half_raw.toFixed(2)} → 取百位整數 → ${fmt(E_half,0)}`;
+
+      document.getElementById('ud-out-E').textContent=fmt(E,0)+' m';
+      document.getElementById('ud-fml-E').textContent=`E/2×2=${fmt(E_half,0)}×2=${fmt(E,0)}`;
+
+      document.getElementById('out-Z1').innerHTML='$'+fmtHtml(Z1);
+      document.getElementById('fml-Z1').textContent=`D×E×I=${D.toFixed(2)}×${fmt(E,0)}×${I}=$${fmt(Z1)}`;
+
+      document.getElementById('out-Z2').innerHTML='$'+fmtHtml(Z2);
+      document.getElementById('fml-Z2').textContent=`(H×K)×2=(${fmt(H,0)}×8)×2=$${fmt(Z2_each)}×2=$${fmt(Z2)}（上料＋下料各印）`;
+
+      document.getElementById('out-Z3').innerHTML='$'+fmtHtml(Z3);
+      document.getElementById('fml-Z3').textContent=`E×O=${fmt(E,0)}×2=$${fmt(Z3)}`;
+
+      document.getElementById('out-Z4').innerHTML='$'+fmtHtml(Z4);
+      let z4f;
+      if(E_half<=834){
+        z4f=`E/2=${fmt(E_half,0)}≤834，基本費$5,000`;
+      } else {
+        const rate=B>20?5.5:5.7;
+        z4f=`5,000+(${fmt(E_half,0)}-834)×${rate}=$${fmt(J_base)}`;
+      }
+      if(hasP) z4f+=`  ＋P:${fmt(E_half,0)}×0.5=+$${fmt(J_p)}`;
+      if(hasQ) z4f+=`  ＋Q:${fmt(E_half,0)}×0.5=+$${fmt(J_q)}`;
+      z4f+=`  → 合計$${fmt(Z4)}`;
+      document.getElementById('fml-Z4').textContent=z4f;
+
+      showFinalRows(hasR,R_cost,C,Z1,Z2,Z3,Z4,Y2,Y1,Y4,Y3,X1,X2);
+    }
+  }
+
+  function showFinalRows(hasR,R_cost,C,Z1,Z2,Z3,Z4,Y2,Y1,Y4,Y3,X1,X2){
+    const rowR=document.getElementById('row-R');
+    if(hasR){
+      rowR.classList.remove('hidden');
+      document.getElementById('out-R').innerHTML='$'+fmtHtml(R_cost);
+      document.getElementById('fml-R').textContent=`0.1×C=0.1×${fmt(C,0)}=$${fmt(R_cost)}`;
+    } else { rowR.classList.add('hidden'); }
+
+    document.getElementById('out-Y2').innerHTML='$'+fmtHtml(Y2);
+    let y2f=`${fmt(Z1)}+${fmt(Z2)}+${fmt(Z3)}+${fmt(Z4)}`;
+    if(hasR) y2f+=`+${fmt(R_cost)}(R)`;
+    y2f+=`=$${fmt(Y2)}`;
+    document.getElementById('fml-Y2').textContent=y2f;
+
+    document.getElementById('out-Y1').innerHTML='$'+fmtHtml(Y1);
+    document.getElementById('out-Y4').innerHTML='$'+fmtHtml(Y4);
+    document.getElementById('out-Y3').innerHTML='$'+fmtHtml(Y3);
+    document.getElementById('out-X1').innerHTML='$'+fmtHtml(X1);
+    document.getElementById('out-X2').textContent=fmt(X2,2)+'%';
+  }
+
+  ['inp-A','inp-B','inp-C','inp-I','inp-N','inp-P','inp-Q','inp-R'].forEach(id=>{
+    document.getElementById(id).addEventListener('input',calculate);
+    document.getElementById(id).addEventListener('change',calculate);
+  });
+
+  calculate();
+</script>
+</body>
+</html>
