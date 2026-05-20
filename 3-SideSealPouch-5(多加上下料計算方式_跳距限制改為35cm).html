@@ -44,6 +44,9 @@
     .ud-banner{background:#fff7ed;border:3px solid #f97316;padding:12px 18px;display:none;align-items:center;gap:10px;font-weight:900;font-size:.9rem;color:#9a3412;position:relative;z-index:10;margin-bottom:20px}
     .ud-banner.show{display:flex}
     .ud-banner .ud-icon{font-size:1.4rem;flex-shrink:0}
+    /* 尺寸超出警告橫幅 */
+    .range-warn{background:#fef9c3;border:3px solid #eab308;padding:11px 18px;display:none;align-items:center;gap:10px;font-weight:900;font-size:.88rem;color:#713f12;position:relative;z-index:10;margin-bottom:20px}
+    .range-warn.show{display:flex}
     /* D badge */
     .d-badge{display:none;margin-top:6px;background:#dbeafe;border:1.5px solid #3b82f6;padding:3px 10px;font-size:.75rem;font-weight:700;color:#1e40af}
     .d-badge.show{display:inline-block}
@@ -75,6 +78,12 @@
     <div id="ud-banner" class="ud-banner line-card" style="box-shadow:6px 6px 0px #f97316">
       <span class="ud-icon">⚠</span>
       <span>需使用上下料製作方式 — 以下計算已切換至上下料模式</span>
+    </div>
+
+    <!-- 尺寸超出警告 -->
+    <div id="range-warn" class="range-warn line-card" style="box-shadow:6px 6px 0px #eab308">
+      <span style="font-size:1.3rem;flex-shrink:0">⚠</span>
+      <span>請注意目前輸入成品尺寸超出範圍</span>
     </div>
 
     <!-- ① 輸入區 -->
@@ -154,8 +163,8 @@
           <span><b class="text-black">L</b> = 印刷基本費 = $1,000</span>
           <span><b class="text-black">M</b> = 材料耗損 = 60 m</span>
           <span><b class="text-black">O</b> = 上光單價 = $2 / m</span>
-          <span><b class="text-black">F</b> = 跳距（最大印刷跳距為0.35 m）</span>
-          <span><b class="text-black">J基本費</b> = $3,000（一般:成品寬15cm以內、500米以內）/ $5,000（上下料:成品寬15cm以上、834米以內）</span>
+          <span><b class="text-black">F上限</b> = 0.35 m（最長跳距）</span>
+          <span><b class="text-black">J基本費</b> = $3,000（一般）/ $5,000（上下料）</span>
         </div>
       </div>
     </div>
@@ -386,16 +395,19 @@
     const eBmax=document.getElementById('err-B-max');
     let valid=true;
 
-    if(!isNaN(A)&&A<12){ eAmin.classList.add('show'); valid=false; } else eAmin.classList.remove('show');
-    if(!isNaN(B)&&B<8)  { eBmin.classList.add('show'); valid=false; } else eBmin.classList.remove('show');
-    if(!isNaN(B)&&B>35) { eBmax.classList.add('show'); valid=false; } else eBmax.classList.remove('show');
+    const outOfRange=((!isNaN(A)&&A<12)||(!isNaN(B)&&B<8)||(!isNaN(B)&&B>35));
+    if(!isNaN(A)&&A<12) eAmin.classList.add('show'); else eAmin.classList.remove('show');
+    if(!isNaN(B)&&B<8)  eBmin.classList.add('show'); else eBmin.classList.remove('show');
+    if(!isNaN(B)&&B>35) eBmax.classList.add('show'); else eBmax.classList.remove('show');
+    const rw=document.getElementById('range-warn'); if(outOfRange) rw.classList.add('show'); else rw.classList.remove('show');
 
-    if(!valid||isNaN(A)||isNaN(B)||isNaN(C)||isNaN(I)||isNaN(N)||A<=0||B<=0||C<=0||N<=0){
+    if(isNaN(A)||isNaN(B)||isNaN(C)||isNaN(I)||isNaN(N)||A<=0||B<=0||C<=0||N<=0){
       clearResults();
       document.getElementById('ud-banner').classList.remove('show');
       document.getElementById('proc-normal').classList.remove('hidden');
       document.getElementById('proc-ud').classList.add('hidden');
       document.getElementById('d-badge').classList.remove('show');
+      document.getElementById('range-warn').classList.remove('show');
       return;
     }
 
